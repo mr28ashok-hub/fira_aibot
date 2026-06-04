@@ -18,12 +18,11 @@ include_directories(
 catkin_install_python(PROGRAMS
   src/tb3_auto.py
   src/tb3_camshift.py
-  src/tb3_exploration.py
   src/tb3_navkey.py
   src/tb3_navvoice.py
   src/tb3_voice.py
   src/voice_challenge.py
-  src/point_recorder.py
   src/keyboard_recorder.py
+  src/recognizer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

@@ -47,7 +47,7 @@ class recognizer(object):
             self.launch_config = 'gconfaudiosrc'
 
         self.launch_config += " ! audioconvert ! audioresample " \
-                            + '! vader name=vad auto-threshold=true ' \
+                            + '! vader name=vad auto-threshold=false threshold=0.2 ' \
                             + '! pocketsphinx name=asr ! fakesink'
 
         self.started = False

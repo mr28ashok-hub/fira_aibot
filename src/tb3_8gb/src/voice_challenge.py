@@ -21,7 +21,7 @@ class VoiceChallengeNode:
         self.voice_command = ""
         self.current_state = "WAITING_FOR_ROOM_1"
 
-        self.voice_sub = rospy.Subscriber("recognizer/output", String, self.voice_callback)
+        self.voice_sub = rospy.Subscriber("/recognizer/output", String, self.voice_callback)
         self.move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)
 
         rospy.loginfo("Waiting for move_base...")
@@ -47,7 +47,10 @@ class VoiceChallengeNode:
         except: pass
 
     def voice_callback(self, msg):
-        self.voice_command = msg.data.upper().strip()
+        cmd = msg.data.upper().strip()
+        if cmd:
+            rospy.loginfo("Voice Command Received: " + cmd)
+            self.voice_command = cmd
 
     def send_goal(self, room_name):
         self.load_locations() # Refresh before sending
@@ -70,12 +73,17 @@ class VoiceChallengeNode:
 
     def run(self):
         rate = rospy.Rate(10)
-        room_list = ["NEURAL HUB", "VISION NODE", "SENSOR GRID", "QUANTUM CORE", "MOTION LINK", "CONTROL BAY"]
+        # Support both Set A and Set B room names
+        room_list = [
+            "NEURAL HUB", "VISION NODE", "SENSOR GRID",
+            "QUANTUM CORE", "MOTION LINK", "CONTROL BAY"
+        ]
 
         while not rospy.is_shutdown():
             if self.current_state == "WAITING_FOR_ROOM_1":
                 for room in room_list:
                     if room in self.voice_command:
+                        rospy.loginfo("Navigating to Room 1: " + room)
                         if self.send_goal(room):
                             self.say("Reached first room. Stopping for 3 seconds.")
                             time.sleep(3)
@@ -86,6 +94,7 @@ class VoiceChallengeNode:
             elif self.current_state == "WAITING_FOR_ROOM_2":
                 for room in room_list:
                     if room in self.voice_command:
+                        rospy.loginfo("Navigating to Room 2: " + room)
                         if self.send_goal(room):
                             self.say("Reached second room. Stopping for 3 seconds.")
                             time.sleep(3)
@@ -96,6 +105,7 @@ class VoiceChallengeNode:
             elif self.current_state == "WAITING_FOR_ROOM_3":
                 for room in room_list:
                     if room in self.voice_command:
+                        rospy.loginfo("Navigating to Room 3: " + room)
                         if self.send_goal(room):
                             self.say("Reached third room. Stopping for 3 seconds.")
                             time.sleep(3)
