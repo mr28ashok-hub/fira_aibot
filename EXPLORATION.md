@@ -1,29 +1,61 @@
-# TurtleBot3 Autonomous SLAM Exploration
+# Aibot Mapping & Voice Challenge Guide
 
-## Improvements for Map Accuracy
-I identified that the original `gmapping_params.yaml` had a `linearUpdate` value of `1.0` and `angularUpdate` of `0.5`. This meant the robot would only update the map after moving 1 full meter or turning 28 degrees, which is too coarse for precise mapping and causes significant drift.
+This guide explains how to map your environment, tag rooms via voice, and then run the challenge.
 
-**Changes made:**
-- Set `linearUpdate` to `0.1` (updates every 10cm).
-- Set `angularUpdate` to `0.1` (updates every ~5 degrees).
-- Adjusted `minimumScore` to `30` to allow better scan matching even with slightly noisy odometry.
-- Reduced `particles` to `30` to maintain performance on the Raspberry Pi with more frequent updates.
+## Phase 1: Mapping and Recording Room Locations
 
-## Autonomous Exploration Logic
-The new node `tb3_exploration.py` provides simple autonomous movement:
-1. It monitors LiDAR sectors (Front, Left, Right).
-2. It moves forward at 0.15 m/s.
-3. If an obstacle is detected within 0.5m in front, it automatically turns towards the direction with more open space.
+1. **Start the Robot:**
+   ```bash
+   roslaunch turtlebot3_bringup turtlebot3_robot.launch
+   ```
 
-## How to Launch
-To start the autonomous mapping with a single command, run:
-```bash
-roslaunch tb3_8gb exploration.launch
-```
-*Note: Make sure your TurtleBot3 core and LiDAR are already running (`roslaunch turtlebot3_bringup turtlebot3_robot.launch`).*
+2. **Start SLAM (Gmapping):**
+   ```bash
+   roslaunch turtlebot3_slam turtlebot3_slam.launch
+   ```
 
-## Saving the Map
-Once you are satisfied with the map, open a new terminal and run:
-```bash
-rosrun map_server map_saver -f ~/my_new_map
-```
+3. **Start Voice Recognition:**
+   ```bash
+   roslaunch tb3_8gb fira_recognizer.launch
+   ```
+
+4. **Start the Point Recorder:**
+   ```bash
+   rosrun tb3_8gb point_recorder.py
+   ```
+
+5. **Record Rooms:**
+   - Drive the robot to a room (e.g., NEURAL HUB).
+   - Once inside, **say the room name clearly**.
+   - The robot will announce "Recorded NEURAL HUB" and save the coordinates.
+   - Repeat for all rooms and the start point.
+
+6. **Save the Map:**
+   ```bash
+   rosrun map_server map_saver -f ~/map
+   ```
+
+---
+
+## Phase 2: Running the Challenge
+
+1. **Start Navigation:**
+   ```bash
+   roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/map.yaml
+   ```
+
+2. **Start Voice Recognition:**
+   ```bash
+   roslaunch tb3_8gb fira_recognizer.launch
+   ```
+
+3. **Start the Challenge Logic:**
+   ```bash
+   rosrun tb3_8gb voice_challenge.py
+   ```
+
+---
+
+## Available Room Names
+- **SET A:** NEURAL HUB, VISION NODE, SENSOR GRID, RETURN TO START
+- **SET B:** QUANTUM CORE, MOTION LINK, CONTROL BAY, GO TO START
