@@ -1,0 +1,7 @@
+<launch>
+  <node name="recognizer" pkg="pocketsphinx" type="recognizer.py" output="screen">
+    <param name="dict" value="$(find tb3_8gb)/config/fira_challenge.dic"/>
+    <param name="fsg" value="$(find tb3_8gb)/config/fira_challenge.jsgf"/>
+    <param name="source" value="alsasrc"/>
+  </node>
+</launch>
