@@ -29,12 +29,15 @@ class VoiceChallengeNode:
         self.say("Robot ready for Voice Command Challenge")
 
     def load_locations(self):
-        if os.path.exists(self.locations_file):
-            with open(self.locations_file, 'r') as f:
-                self.room_coordinates = yaml.safe_load(f) or {}
-            rospy.loginfo("Loaded locations: " + str(self.room_coordinates.keys()))
-        else:
-            rospy.logwarn("Locations file not found! Please run point_recorder.py first.")
+        try:
+            if os.path.exists(self.locations_file):
+                with open(self.locations_file, 'r') as f:
+                    new_coords = yaml.safe_load(f) or {}
+                if new_coords != self.room_coordinates:
+                    self.room_coordinates = new_coords
+                    rospy.loginfo("Updated locations: " + str(self.room_coordinates.keys()))
+        except Exception as e:
+            rospy.logerr("Error loading locations: " + str(e))
 
     def say(self, text):
         rospy.loginfo("Announcing: " + text)
@@ -44,9 +47,10 @@ class VoiceChallengeNode:
         except: pass
 
     def voice_callback(self, msg):
-        self.voice_command = msg.data.upper()
+        self.voice_command = msg.data.upper().strip()
 
     def send_goal(self, room_name):
+        self.load_locations() # Refresh before sending
         if room_name not in self.room_coordinates:
             rospy.logwarn("Room %s not found!", room_name)
             return False
@@ -69,9 +73,6 @@ class VoiceChallengeNode:
         room_list = ["NEURAL HUB", "VISION NODE", "SENSOR GRID", "QUANTUM CORE", "MOTION LINK", "CONTROL BAY"]
 
         while not rospy.is_shutdown():
-            # Refresh locations in case they were updated
-            self.load_locations()
-
             if self.current_state == "WAITING_FOR_ROOM_1":
                 for room in room_list:
                     if room in self.voice_command:

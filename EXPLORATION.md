@@ -1,8 +1,8 @@
 # Aibot Mapping & Voice Challenge Guide
 
-This guide explains how to map your environment, tag rooms via voice, and then run the challenge.
+This guide explains how to map your environment, tag rooms manually for 100% reliability, and then run the challenge.
 
-## Phase 1: Mapping and Recording Room Locations (Short-Form Commands)
+## Phase 1: Mapping and Recording Room Locations (Reliable Keyboard Version)
 
 1. **Start the Robot:**
    \`\`\`bash
@@ -14,27 +14,22 @@ This guide explains how to map your environment, tag rooms via voice, and then r
    roslaunch turtlebot3_slam turtlebot3_slam.launch
    \`\`\`
 
-3. **Start Voice Recognition:**
+3. **Start the Keyboard Recorder:**
+   In a new terminal, run:
    \`\`\`bash
-   roslaunch tb3_8gb fira_recognizer.launch
+   rosrun tb3_8gb keyboard_recorder.py
    \`\`\`
 
-4. **Start the Point Recorder:**
-   \`\`\`bash
-   rosrun tb3_8gb point_recorder.py
-   \`\`\`
+4. **Tag Your Rooms:**
+   Drive the robot to a spot and type the number in the **Keyboard Recorder** terminal:
+   - Type **\"1\"** + Enter -> Tags **NEURAL HUB** and **QUANTUM CORE**
+   - Type **\"2\"** + Enter -> Tags **VISION NODE** and **MOTION LINK**
+   - Type **\"3\"** + Enter -> Tags **SENSOR GRID** and **CONTROL BAY**
+   - Type **\"start\"** + Enter -> Tags **START POINTS** (Both Sets)
 
-5. **Tag Rooms (FAST VERSION):**
-   Drive the robot to a spot and say one of these short words:
-   - **\"HUB\"** (for Neural Hub)
-   - **\"NODE\"** (for Vision Node)
-   - **\"GRID\"** (for Sensor Grid)
-   - **\"CORE\"** (for Quantum Core)
-   - **\"LINK\"** (for Motion Link)
-   - **\"BAY\"** (for Control Bay)
-   - **\"START\"** (for the Starting Point)
+   *The robot will announce \"Room [X] recorded for both sets\" via Festival TTS.*
 
-6. **Save the Map:**
+5. **Save the Map:**
    \`\`\`bash
    rosrun map_server map_saver -f ~/map
    \`\`\`
@@ -60,13 +55,10 @@ This guide explains how to map your environment, tag rooms via voice, and then r
 
 ---
 
-## Recognized Commands Reference
-| Room/Point | Voice Shortcut | Long-form Command |
-| :--- | :--- | :--- |
-| **Neural Hub** | **HUB** | \"NEURAL HUB\" |
-| **Vision Node** | **NODE** | \"VISION NODE\" |
-| **Sensor Grid** | **GRID** | \"SENSOR GRID\" |
-| **Quantum Core** | **CORE** | \"QUANTUM CORE\" |
-| **Motion Link** | **LINK** | \"MOTION LINK\" |
-| **Control Bay** | **BAY** | \"CONTROL BAY\" |
-| **Start Point** | **START** | \"RETURN/GO TO START\" |
+## Command Reference
+| Key Input | Tagged Rooms (Both Sets) |
+| :--- | :--- |
+| **1** | NEURAL HUB & QUANTUM CORE |
+| **2** | VISION NODE & MOTION LINK |
+| **3** | SENSOR GRID & CONTROL BAY |
+| **start** | RETURN TO START & GO TO START |
