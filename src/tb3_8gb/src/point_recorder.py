@@ -22,24 +22,50 @@ class PointRecorder:
         self.listener = tf.TransformListener()
         self.voice_sub = rospy.Subscriber('recognizer/output', String, self.voice_callback)
 
+        # Mapping for short-form to long-form names
+        self.short_mapping = {
+            'HUB': 'NEURAL HUB',
+            'NODE': 'VISION NODE',
+            'GRID': 'SENSOR GRID',
+            'CORE': 'QUANTUM CORE',
+            'LINK': 'MOTION LINK',
+            'BAY': 'CONTROL BAY',
+            'START': 'START' # Special handling for start point
+        }
+
+        # Full list of recognized terms
         self.room_list = [
             'NEURAL HUB', 'VISION NODE', 'SENSOR GRID',
             'QUANTUM CORE', 'MOTION LINK', 'CONTROL BAY',
             'RETURN TO START', 'GO TO START'
         ]
 
-        rospy.loginfo('Point Recorder Ready. Say a room name while mapping to record its location.')
+        rospy.loginfo('Point Recorder Ready with Short-Form Support.')
+        rospy.loginfo('Shortcuts: HUB, NODE, GRID, CORE, LINK, BAY, START')
 
     def voice_callback(self, msg):
-        command = msg.data.upper()
+        command = msg.data.upper().strip()
+        rospy.loginfo('Heard: ' + command)
+
         matched_room = None
-        for room in self.room_list:
-            if room in command:
-                matched_room = room
-                break
+
+        # Check for shortcuts first
+        if command in self.short_mapping:
+            matched_room = self.short_mapping[command]
+        else:
+            # Fallback to long-form names
+            for room in self.room_list:
+                if room in command:
+                    matched_room = room
+                    break
 
         if matched_room:
-            self.record_point(matched_room)
+            if matched_room == 'START':
+                # Special case: Record both start point variations
+                self.record_point('RETURN TO START')
+                self.record_point('GO TO START')
+            else:
+                self.record_point(matched_room)
 
     def record_point(self, room_name):
         try:
@@ -48,10 +74,10 @@ class PointRecorder:
             (trans, rot) = self.listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
 
             self.room_data[room_name] = {
-                'x': trans[0],
-                'y': trans[1],
-                'z': rot[2],
-                'w': rot[3]
+                'x': float(trans[0]),
+                'y': float(trans[1]),
+                'z': float(rot[2]),
+                'w': float(rot[3])
             }
 
             with open(self.output_file, 'w') as f:
