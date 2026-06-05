@@ -122,8 +122,9 @@ class recognizer(object):
         if msgtype == 'result':
             msg_out = String()
             msg_out.data = str(msg.structure['hyp'].lower())
-            rospy.loginfo(msg_out.data)
-            self.pub.publish(msg_out)
+            if msg_out.data.strip():
+                rospy.loginfo("Published result: " + msg_out.data)
+                self.pub.publish(msg_out)
 
 if __name__ == "__main__":
     rec = recognizer()

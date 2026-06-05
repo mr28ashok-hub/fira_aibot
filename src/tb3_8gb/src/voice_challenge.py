@@ -84,45 +84,57 @@ class VoiceChallengeNode:
                 for room in room_list:
                     if room in self.voice_command:
                         rospy.loginfo("Navigating to Room 1: " + room)
+                        self.say("Navigating to " + room)
+                        self.voice_command = "" # Clear immediately to avoid re-trigger
                         if self.send_goal(room):
                             self.say("Reached first room. Stopping for 3 seconds.")
                             time.sleep(3)
                             self.current_state = "WAITING_FOR_ROOM_2"
-                            self.voice_command = ""
+                        else:
+                            self.say("Navigation to first room failed. Please try again.")
                         break
 
             elif self.current_state == "WAITING_FOR_ROOM_2":
                 for room in room_list:
                     if room in self.voice_command:
                         rospy.loginfo("Navigating to Room 2: " + room)
+                        self.say("Navigating to " + room)
+                        self.voice_command = ""
                         if self.send_goal(room):
                             self.say("Reached second room. Stopping for 3 seconds.")
                             time.sleep(3)
                             self.current_state = "WAITING_FOR_ROOM_3"
-                            self.voice_command = ""
+                        else:
+                            self.say("Navigation to second room failed. Please try again.")
                         break
 
             elif self.current_state == "WAITING_FOR_ROOM_3":
                 for room in room_list:
                     if room in self.voice_command:
                         rospy.loginfo("Navigating to Room 3: " + room)
+                        self.say("Navigating to " + room)
+                        self.voice_command = ""
                         if self.send_goal(room):
                             self.say("Reached third room. Stopping for 3 seconds.")
                             time.sleep(3)
                             self.say("ALL ROOM ENTERED. WHAT'S NEXT?")
                             self.current_state = "WAITING_FOR_START"
-                            self.voice_command = ""
+                        else:
+                            self.say("Navigation to third room failed. Please try again.")
                         break
 
             elif self.current_state == "WAITING_FOR_START":
                 if "RETURN TO START" in self.voice_command or "GO TO START" in self.voice_command:
                     start_cmd = "RETURN TO START" if "RETURN TO START" in self.voice_command else "GO TO START"
+                    self.say("Returning to start")
+                    self.voice_command = ""
                     if self.send_goal(start_cmd):
                         self.say("Reached start point. Stopping for 3 seconds.")
                         time.sleep(3)
                         self.say("ALL MISSION COMPLETED")
                         self.current_state = "FINISHED"
-                        self.voice_command = ""
+                    else:
+                        self.say("Navigation to start point failed. Please try again.")
 
             elif self.current_state == "FINISHED":
                 break
