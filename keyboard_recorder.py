@@ -15,7 +15,7 @@ class KeyboardRecorder:
         self.mapping = {
             'b': 'blue_pickup', 'r': 'red_pickup', 'y': 'yellow_pickup',
             '1': 'blue_dropoff', '2': 'red_dropoff', '3': 'yellow_dropoff',
-            's': 'start'
+            's': 'start', 'c': 'checkpoint'
         }
         self.print_menu()
 
@@ -30,8 +30,8 @@ class KeyboardRecorder:
 
     def print_menu(self):
         print('\n--- Challenge Coordinate Recorder ---')
-        print('Record: [PICKUP] b:Blue, r:Red, y:Yellow | [DROPOFF] 1:Blue, 2:Red, 3:Yellow | s:Start')
-        print('Delete: type "del" then the key (e.g., "del b" to clear Blue pickup)')
+        print('Record: [PICKUP] b/r/y | [DROPOFF] 1/2/3 | s:Start | c:Checkpoint (CP1)')
+        print('Delete: type "del" then the key (e.g., "del c")')
         print('Quit: q')
 
     def record(self, key):
@@ -42,21 +42,17 @@ class KeyboardRecorder:
             (trans, rot) = self.listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
             self.room_data[name] = {'x': float(trans[0]), 'y': float(trans[1]), 'z': float(rot[2]), 'w': float(rot[3])}
             self.save_data()
-            print('>>> SAVED: %s (Overwrote if existed)' % name.upper())
+            print('>>> SAVED: %s' % name.upper())
         except Exception as e:
             print('Error: %s' % e)
 
     def delete(self, key):
-        if key not in self.mapping:
-            print('Invalid key for deletion.')
-            return
+        if key not in self.mapping: return
         name = self.mapping[key]
         if name in self.room_data:
             del self.room_data[name]
             self.save_data()
             print('>>> DELETED: %s' % name.upper())
-        else:
-            print('Key %s was not set.' % key)
 
     def run(self):
         while not rospy.is_shutdown():

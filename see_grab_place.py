@@ -64,7 +64,7 @@ class SeeGrabPlace:
             data = yaml.safe_load(f)
             coords = data.get(loc)
         if not coords:
-            rospy.logerr("Location %s not found in YAML!" % loc)
+            rospy.logerr("Location %s not found!" % loc)
             return False
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
@@ -84,30 +84,37 @@ class SeeGrabPlace:
         # 1. Scan for Sign (SEE)
         color = self.detect_sign()
         if not color:
-            rospy.logwarn("No sign found. Aborting."); return
+            rospy.logwarn("No sign found."); return
 
-        # 2. Go to Pickup (based on color)
+        # 2. Go to Pickup
         rospy.loginfo("Heading to %s pickup..." % color)
         if self.navigate_to(color + "_pickup"):
             # 3. GRAB
             rospy.loginfo("Executing GRAB.")
             self.control_gripper("GRAB")
 
-            # 4. Go to Drop-off
-            rospy.loginfo("Heading to %s drop-off..." % color)
-            if self.navigate_to(color + "_dropoff"):
-                # 5. RELEASE (PLACE)
-                rospy.loginfo("Executing RELEASE.")
-                self.control_gripper("RELEASE")
+            # 4. TOUCH CHECKPOINT (CP1)
+            rospy.loginfo("Heading to CHECKPOINT (CP1)...")
+            if self.navigate_to("checkpoint"):
+                rospy.loginfo("Checkpoint touched.")
 
-                # 6. Return to Start
-                rospy.loginfo("Mission success. Returning to start.")
-                self.navigate_to("start")
-                rospy.loginfo("Mission Complete.")
+                # 5. Go to Drop-off
+                rospy.loginfo("Heading to %s drop-off..." % color)
+                if self.navigate_to(color + "_dropoff"):
+                    # 6. RELEASE
+                    rospy.loginfo("Executing RELEASE.")
+                    self.control_gripper("RELEASE")
+
+                    # 7. Return to Start
+                    rospy.loginfo("Returning to start.")
+                    self.navigate_to("start")
+                    rospy.loginfo("Mission Complete.")
+                else:
+                    rospy.logerr("Failed drop-off.")
             else:
-                rospy.logerr("Failed to reach drop-off.")
+                rospy.logerr("Failed checkpoint.")
         else:
-            rospy.logerr("Failed to reach pickup.")
+            rospy.logerr("Failed pickup.")
 
 if __name__ == '__main__':
     SeeGrabPlace().run()
