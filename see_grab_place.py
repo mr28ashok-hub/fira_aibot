@@ -5,138 +5,109 @@ import numpy as np
 import serial
 import time
 import actionlib
+import yaml
+import os
 from geometry_msgs.msg import Twist
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import CompressedImage
-from cv_bridge import CvBridge
 from actionlib_msgs.msg import GoalStatus
-
-# --- Challenge Waypoints ---
-TARGET_LOCATIONS = {
-    'blue':   (1.606, 0.969, 0.0, 1.0), # MOTION LINK (x, y, z_orient, w_orient)
-    'red':    (0.200, 1.000, 0.0, 1.0), # NEURAL HUB
-    'yellow': (1.646, -0.389, 0.0, 1.0), # CONTROL BAY
-}
-
-# --- Detection Parameters ---
-COLOUR_RANGES = {
-    'blue':   ([100, 150, 50], [130, 255, 255]),
-    'yellow': ([ 20, 150, 50], [ 35, 255, 255]),
-    'red':    ([  0, 150, 50], [ 10, 255, 255]),
-}
 
 class SeeGrabPlace:
     def __init__(self):
         rospy.init_node('see_grab_place')
-        self.bridge = CvBridge()
+        self.locations_file = '/home/pi/catkin_ws/src/tb3_8gb/config/room_locations.yaml'
         self.current_frame = None
         self.ser = None
 
-        # Initialize Serial for Gripper (Arduino)
         try:
             self.ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
-            rospy.loginfo("Connected to Gripper on /dev/ttyUSB0")
-        except Exception as e:
-            rospy.logerr("Failed to connect to gripper: %s" % e)
+            rospy.loginfo("Gripper active.")
+        except:
+            rospy.logerr("Gripper failed.")
 
-        # Subscribe to COMPRESSED image for performance and compatibility
         rospy.Subscriber('/raspicam_node/image/compressed', CompressedImage, self.image_callback)
         self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
-
-        # MoveBase Client
         self.move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-        rospy.loginfo("Waiting for move_base action server...")
         self.move_base.wait_for_server()
-
-        rospy.loginfo("System Ready for See-Grab-Place!")
+        rospy.loginfo("System Ready.")
 
     def image_callback(self, msg):
-        try:
-            np_arr = np.fromstring(msg.data, np.uint8)
-            self.current_frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        except Exception as e:
-            rospy.logerr("Image decode failed: %s" % e)
+        np_arr = np.fromstring(msg.data, np.uint8)
+        self.current_frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
     def control_gripper(self, command):
         if self.ser:
             self.ser.write(command + "\n")
-            rospy.loginfo("Sent to Arduino: %s" % command)
-            time.sleep(1.5) # Wait for servo
-            return True
-        return False
+            time.sleep(1.5)
 
-    def detect_sign(self, timeout=30):
-        rospy.loginfo("Scanning for signs...")
-        start_time = rospy.Time.now()
-        twist = Twist()
-        twist.angular.z = 0.4
-
-        while (rospy.Time.now() - start_time).to_sec() < timeout:
+    def detect_sign(self, timeout=20):
+        rospy.loginfo("Scanning for sign...")
+        start = rospy.Time.now()
+        twist = Twist(); twist.angular.z = 0.4
+        ranges = {'blue': ([100,150,50],[130,255,255]), 'yellow': ([20,150,50],[35,255,255]), 'red_1': ([0,150,50],[10,255,255]), 'red_2': ([170,150,50],[180,255,255])}
+        while (rospy.Time.now() - start).to_sec() < timeout:
             if self.current_frame is not None:
                 hsv = cv2.cvtColor(self.current_frame, cv2.COLOR_BGR2HSV)
-                for color, (low, high) in COLOUR_RANGES.items():
-                    mask = cv2.inRange(hsv, np.array(low), np.array(high))
-                    count = cv2.countNonZero(mask)
-                    if count > 1200: # Robust threshold
-                        rospy.loginfo("DETECTED: %s Sign" % color.upper())
-                        self.stop_robot()
+                for color, (l, h) in [('blue', ranges['blue']), ('yellow', ranges['yellow']), ('red', ranges['red_1'])]:
+                    mask = cv2.inRange(hsv, np.array(l), np.array(h))
+                    if color == 'red': mask = cv2.bitwise_or(mask, cv2.inRange(hsv, np.array(ranges['red_2'][0]), np.array(ranges['red_2'][1])))
+                    if cv2.countNonZero(mask) > 1200:
+                        rospy.loginfo("Seen: %s" % color)
+                        self.cmd_vel_pub.publish(Twist())
                         return color
+            self.cmd_vel_pub.publish(twist); rospy.sleep(0.1)
+        self.cmd_vel_pub.publish(Twist()); return None
 
-            self.cmd_vel_pub.publish(twist)
-            rospy.sleep(0.1)
-
-        self.stop_robot()
-        return None
-
-    def stop_robot(self):
-        self.cmd_vel_pub.publish(Twist())
-        rospy.sleep(0.5)
-
-    def navigate_to(self, location_name):
-        if location_name not in TARGET_LOCATIONS:
+    def navigate_to(self, loc):
+        if not os.path.exists(self.locations_file): return False
+        with open(self.locations_file, 'r') as f:
+            data = yaml.safe_load(f)
+            coords = data.get(loc)
+        if not coords:
+            rospy.logerr("Location %s not found in YAML!" % loc)
             return False
-
-        rospy.loginfo("Navigating to %s waypoint..." % location_name)
-        x, y, z_o, w_o = TARGET_LOCATIONS[location_name]
-
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.pose.position.x = x
-        goal.target_pose.pose.position.y = y
-        goal.target_pose.pose.orientation.z = z_o
-        goal.target_pose.pose.orientation.w = w_o
-
+        goal.target_pose.pose.position.x = coords['x']
+        goal.target_pose.pose.position.y = coords['y']
+        goal.target_pose.pose.orientation.z = coords['z']
+        goal.target_pose.pose.orientation.w = coords['w']
         self.move_base.send_goal(goal)
-        self.move_base.wait_for_result(rospy.Duration(150))
+        self.move_base.wait_for_result()
         return self.move_base.get_state() == GoalStatus.SUCCEEDED
 
     def run(self):
-        rospy.loginfo("Mission starts in 5 seconds. Place object in front of robot.")
-        rospy.sleep(5)
+        raw_input("Type 'start' to begin mission: ")
+        rospy.loginfo("Mission started.")
 
-        # 1. GRAB (Workpiece is in front at start)
-        rospy.loginfo("Grabbing workpiece...")
-        self.control_gripper("GRAB")
+        # 1. Scan for Sign (SEE)
+        color = self.detect_sign()
+        if not color:
+            rospy.logwarn("No sign found. Aborting."); return
 
-        # 2. SEE: Scan for a sign to know where to go
-        detected_color = self.detect_sign()
+        # 2. Go to Pickup (based on color)
+        rospy.loginfo("Heading to %s pickup..." % color)
+        if self.navigate_to(color + "_pickup"):
+            # 3. GRAB
+            rospy.loginfo("Executing GRAB.")
+            self.control_gripper("GRAB")
 
-        if detected_color:
-            # 3. NAVIGATE: Go to the destination
-            if self.navigate_to(detected_color):
-                # 4. PLACE: Handover
-                rospy.loginfo("Handoff position reached. Releasing...")
+            # 4. Go to Drop-off
+            rospy.loginfo("Heading to %s drop-off..." % color)
+            if self.navigate_to(color + "_dropoff"):
+                # 5. RELEASE (PLACE)
+                rospy.loginfo("Executing RELEASE.")
                 self.control_gripper("RELEASE")
-                rospy.loginfo("MISSION SUCCESSFUL.")
+
+                # 6. Return to Start
+                rospy.loginfo("Mission success. Returning to start.")
+                self.navigate_to("start")
+                rospy.loginfo("Mission Complete.")
             else:
-                rospy.logerr("Navigation failed.")
+                rospy.logerr("Failed to reach drop-off.")
         else:
-            rospy.logwarn("No sign detected. Aborting.")
+            rospy.logerr("Failed to reach pickup.")
 
 if __name__ == '__main__':
-    try:
-        mission = SeeGrabPlace()
-        mission.run()
-    except rospy.ROSInterruptException:
-        pass
+    SeeGrabPlace().run()
