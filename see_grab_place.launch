@@ -1,0 +1,17 @@
+<launch>
+  <!-- TurtleBot3 Bringup -->
+  <include file="$(find turtlebot3_bringup)/launch/turtlebot3_robot.launch"/>
+
+  <!-- Camera -->
+  <include file="$(find raspicam_node)/launch/camerav2_1280x960.launch"/>
+
+  <!-- Navigation -->
+  <arg name="map_file" default="$(env HOME)/map.yaml"/>
+  <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+    <arg name="map_file" value="$(arg map_file)"/>
+    <arg name="open_rviz" value="false"/>
+  </include>
+
+  <!-- See-Grab-Place Mission -->
+  <node name="see_grab_place" pkg="tb3_8gb" type="see_grab_place.py" output="screen"/>
+</launch>
