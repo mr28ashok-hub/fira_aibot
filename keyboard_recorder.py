@@ -3,6 +3,13 @@ import rospy
 import tf
 import yaml
 import os
+import sys
+
+# Python 2/3 compatibility for input
+if sys.version_info[0] >= 3:
+    get_input = input
+else:
+    get_input = raw_input
 
 class KeyboardRecorder:
     def __init__(self):
@@ -21,12 +28,18 @@ class KeyboardRecorder:
 
     def load_data(self):
         if os.path.exists(self.output_file):
-            with open(self.output_file, 'r') as f:
-                self.room_data = yaml.safe_load(f) or {}
+            try:
+                with open(self.output_file, 'r') as f:
+                    self.room_data = yaml.safe_load(f) or {}
+            except Exception as e:
+                rospy.logerr("Error loading yaml: %s" % e)
 
     def save_data(self):
-        with open(self.output_file, 'w') as f:
-            yaml.dump(self.room_data, f)
+        try:
+            with open(self.output_file, 'w') as f:
+                yaml.dump(self.room_data, f)
+        except Exception as e:
+            rospy.logerr("Error saving yaml: %s" % e)
 
     def print_menu(self):
         print('\n--- Challenge Coordinate Recorder ---')
@@ -56,13 +69,16 @@ class KeyboardRecorder:
 
     def run(self):
         while not rospy.is_shutdown():
-            cmd = raw_input('Command: ').strip().lower()
-            if cmd == 'q': break
-            if cmd.startswith('del '):
-                parts = cmd.split()
-                if len(parts) > 1: self.delete(parts[1])
-            else:
-                self.record(cmd)
+            try:
+                cmd = get_input('Command: ').strip().lower()
+                if cmd == 'q': break
+                if cmd.startswith('del '):
+                    parts = cmd.split()
+                    if len(parts) > 1: self.delete(parts[1])
+                else:
+                    self.record(cmd)
+            except EOFError:
+                break
 
 if __name__ == '__main__':
     KeyboardRecorder().run()
