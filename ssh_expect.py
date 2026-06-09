@@ -5,13 +5,15 @@ import subprocess
 import time
 
 def main():
-    host = os.getenv("ROBOT_HOST", "erbrz-2402-1980-c2e-b22b--1bb.run.pinggy-free.link")
-    port = os.getenv("ROBOT_PORT", "35747")
-    user = "pi"
-    password = "turtlebot"
+    # Use environment variables or placeholders for sensitive information
+    host = os.getenv("ROBOT_HOST", "PLACEHOLDER_HOST")
+    port = os.getenv("ROBOT_PORT", "PLACEHOLDER_PORT")
+    user = os.getenv("ROBOT_USER", "pi")
+    password = os.getenv("ROBOT_PASSWORD", "PLACEHOLDER_PASSWORD")
 
-    # Use bash -i to simulate interactive shell and check alias/path
-    remote_cmd = "bash -i -c 'alias cm && which catkin_make'"
+    # Command to run on the remote machine
+    # Example: python3 ssh_expect.py "grep 'alias cm=' ~/.bashrc"
+    remote_cmd = sys.argv[1] if len(sys.argv) > 1 else "hostname"
 
     ssh_cmd = ["ssh", "-p", port, "-o", "StrictHostKeyChecking=no", f"{user}@{host}", remote_cmd]
 
