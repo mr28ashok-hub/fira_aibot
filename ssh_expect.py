@@ -5,14 +5,14 @@ import subprocess
 import time
 
 def main():
-    # Placeholders for connection details
+    # Use environment variables for sensitive info
     host = os.getenv("ROBOT_HOST", "PLACEHOLDER_HOST")
     port = os.getenv("ROBOT_PORT", "PLACEHOLDER_PORT")
     user = os.getenv("ROBOT_USER", "pi")
     password = os.getenv("ROBOT_PASSWORD", "PLACEHOLDER_PASSWORD")
 
-    # Command to read the coordinates
-    remote_cmd = "cat /home/pi/catkin_ws/src/tb3_8gb/config/room_locations.yaml"
+    # Command to run on remote machine
+    remote_cmd = sys.argv[1] if len(sys.argv) > 1 else "hostname"
 
     ssh_cmd = ["ssh", "-p", port, "-o", "StrictHostKeyChecking=no", f"{user}@{host}", remote_cmd]
 
