@@ -29,8 +29,9 @@ def main():
                 buffer += data
                 output = data.decode(errors='ignore')
                 print(output, end='', flush=True)
-                if "password:" in output.lower():
+                if "password:" in buffer.decode(errors='ignore').lower():
                     os.write(fd, f"{password}\n".encode())
+                    buffer = b"" # Clear buffer after sending password
             except OSError:
                 break
         time.sleep(2)
