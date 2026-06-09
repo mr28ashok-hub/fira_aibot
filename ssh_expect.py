@@ -5,34 +5,35 @@ import subprocess
 import time
 
 def main():
-    host = os.getenv("ROBOT_HOST", "PLACEHOLDER_HOST")
-    port = os.getenv("ROBOT_PORT", "PLACEHOLDER_PORT")
-    user = os.getenv("ROBOT_USER", "pi")
-    password = os.getenv("ROBOT_PASSWORD", "PLACEHOLDER_PASSWORD")
+    cmd = ["ssh", "-p", "443", "-o", "StrictHostKeyChecking=no", "tfymq@a.pinggy.io"]
 
-    remote_cmd = sys.argv[1] if len(sys.argv) > 1 else "hostname"
-
-    ssh_cmd = ["ssh", "-p", port, "-o", "StrictHostKeyChecking=no", f"{user}@{host}", remote_cmd]
-
+    # This is a very basic way to handle password input without pexpect
+    # It might not work perfectly but it's worth a try
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvp(ssh_cmd[0], ssh_cmd)
+        os.execvp(cmd[0], cmd)
     else:
+        # Read from fd and look for password prompt
         buffer = b""
         start_time = time.time()
-        while time.time() - start_time < 30:
+        while time.time() - start_time < 20:
             try:
-                data = os.read(fd, 4096)
+                data = os.read(fd, 1024)
                 if not data:
                     break
                 buffer += data
-                output = data.decode(errors='ignore')
-                print(output, end='', flush=True)
-                if "password:" in output.lower():
-                    os.write(fd, f"{password}\n".encode())
+                print(data.decode(errors='ignore'), end='', flush=True)
+                if b"password:" in buffer.lower():
+                    os.write(fd, b"turtlebot\n")
+                    buffer = b"" # clear buffer to avoid re-triggering
+                if b"Authenticated" in buffer or b"tfymq@" in buffer:
+                     # Once authenticated, we might need to stay alive or run a command
+                     pass
             except OSError:
                 break
-        time.sleep(2)
+
+        # Keep it open for a bit to see output
+        time.sleep(5)
 
 if __name__ == "__main__":
     main()
