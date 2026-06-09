@@ -5,35 +5,43 @@ import subprocess
 import time
 
 def main():
-    cmd = ["ssh", "-p", "443", "-o", "StrictHostKeyChecking=no", "tfymq@a.pinggy.io"]
+    host = "oofqu-2402-1980-c2e-b22b--1bb.run.pinggy-free.link"
+    port = "40247"
+    user = "pi"
+    password = "turtlebot"
 
-    # This is a very basic way to handle password input without pexpect
-    # It might not work perfectly but it's worth a try
+    # Command to retrieve map.yaml, room_locations.yaml, and base64 encoded map.pgm
+    remote_cmd = (
+        "echo '---BEGIN map.yaml---' && cat ~/map.yaml && echo '---END map.yaml---' && "
+        "echo '---BEGIN room_locations.yaml---' && cat ~/catkin_ws/src/tb3_8gb/config/room_locations.yaml && echo '---END room_locations.yaml---' && "
+        "echo '---BEGIN map.pgm.b64---' && base64 ~/map.pgm && echo '---END map.pgm.b64---'"
+    )
+
+    ssh_cmd = ["ssh", "-p", port, "-o", "StrictHostKeyChecking=no", f"{user}@{host}", remote_cmd]
+
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvp(cmd[0], cmd)
+        os.execvp(ssh_cmd[0], ssh_cmd)
     else:
-        # Read from fd and look for password prompt
         buffer = b""
         start_time = time.time()
-        while time.time() - start_time < 20:
+        # Binary data might take longer to transfer
+        while time.time() - start_time < 120:
             try:
-                data = os.read(fd, 1024)
+                data = os.read(fd, 8192)
                 if not data:
                     break
                 buffer += data
-                print(data.decode(errors='ignore'), end='', flush=True)
-                if b"password:" in buffer.lower():
-                    os.write(fd, b"turtlebot\n")
-                    buffer = b"" # clear buffer to avoid re-triggering
-                if b"Authenticated" in buffer or b"tfymq@" in buffer:
-                     # Once authenticated, we might need to stay alive or run a command
-                     pass
+                output = data.decode(errors='ignore')
+                # Printing might be slow for large binary buffers, so we'll be careful
+                if "password:" in output.lower():
+                    os.write(fd, f"{password}\n".encode())
             except OSError:
                 break
 
-        # Keep it open for a bit to see output
-        time.sleep(5)
+        # Save the full raw buffer for extraction
+        with open("raw_backup_data.txt", "wb") as f:
+            f.write(buffer)
 
 if __name__ == "__main__":
     main()
