@@ -5,13 +5,11 @@ import subprocess
 import time
 
 def main():
-    # Use environment variables for sensitive info
     host = os.getenv("ROBOT_HOST", "PLACEHOLDER_HOST")
     port = os.getenv("ROBOT_PORT", "PLACEHOLDER_PORT")
     user = os.getenv("ROBOT_USER", "pi")
     password = os.getenv("ROBOT_PASSWORD", "PLACEHOLDER_PASSWORD")
 
-    # Command to run on remote machine
     remote_cmd = sys.argv[1] if len(sys.argv) > 1 else "hostname"
 
     ssh_cmd = ["ssh", "-p", port, "-o", "StrictHostKeyChecking=no", f"{user}@{host}", remote_cmd]
@@ -24,7 +22,7 @@ def main():
         start_time = time.time()
         while time.time() - start_time < 30:
             try:
-                data = os.read(fd, 1024)
+                data = os.read(fd, 4096)
                 if not data:
                     break
                 buffer += data
