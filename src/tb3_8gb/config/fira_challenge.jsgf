@@ -1,0 +1,8 @@
+#JSGF V1.0;
+grammar fira;
+public <command> = <room_a> | <room_b> | <start_a> | <start_b> | <short_form>;
+<room_a> = NEURAL HUB | VISION NODE | SENSOR GRID;
+<room_b> = QUANTUM CORE | MOTION LINK | CONTROL BAY;
+<start_a> = RETURN TO START;
+<start_b> = GO TO START;
+<short_form> = HUB | NODE | GRID | CORE | LINK | BAY | START;
